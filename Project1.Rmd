@@ -1,10 +1,82 @@
 ---
-title: "Untitled"
+title: "Project1"
 author: "Sylvia Baeyens"
 date: "9/20/2021"
-output: html_document
+output: github_document
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+
+```{r packages, echo= FALSE, include= FALSE}
+#including necessary libraries
+library(data.table)
+library(dplyr)
+library(tidyverse)
+library(leaflet)
+library(R.utils)
+library(ggplot2)
+library(stringr)
+```
+
+# 1a. Reading in Data Files
+```{r data-read, cache= TRUE}
+Data2004 = data.table::fread("ad_viz_plotval_data2004.csv")
+Data2019 = data.table::fread("ad_viz_plotval_data2019.csv")
+```
+
+# 1b. Summarizing Data
+```{r}
+# for 2005 Data
+dim(Data2004)
+head(Data2004)
+tail(Data2004)
+
+# for 2020 Data
+dim(Data2019)
+head(Data2019)
+tail(Data2019)
+```
+
+FIX The 2005 data has 20543 rows & 20 columns. The 2020 data has 55305 rows & 20 columns. WRITE MORE HERE
+
+# 2. Combine the two data sets & variable name clean-up
+```{r}
+#combining data sets
+DataTotal = rbind(Data2004, Data2019)
+
+#creating year variable by extracting last 4 characters from Date variable
+DataTotal$Year = str_sub(DataTotal$Date, start= -4)
+
+DataTotal %>%
+  rename(
+     PM2_5 = "Daily Mean PM2.5 Concentration",
+  )
+```
+
+# 3. Creating Map in Leaflet
+
+```{r}
+leaflet(DataTotal) %>%
+  addProviderTiles('CartoDB.Positron') %>%
+  addCircles(
+    lat = ~SITE_LATITUDE, lng=~SITE_LONGITUDE, opacity=1, fillOpacity=1, radius=100, color = ~Year
+    ) 
+# And a pretty legend
+# addLegend('bottomleft', pal=temp.pal, values=met_avg$rh,
+# title='Temperature, C', opacity=1)
+```
+
+# 4. Check for Missing or Improbable Data
+```{r}
+
+```
+
+# 5. Explore the Main Question of Interest at State, County & City Level
+```{r}
+
+```
+
