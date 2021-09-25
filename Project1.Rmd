@@ -65,7 +65,7 @@ DataTotal = DataTotal %>%
 # 3. Creating Map in Leaflet
 ```{r}
 #assigning color palette
-temp.pal = colorNumeric(c('navyblue','goldenrod'), domain = DataTotal$Year)
+temp.pal = colorNumeric(c('navyblue','lightblue'), domain = DataTotal$Year)
 
 leaflet(DataTotal) %>%
   addProviderTiles('CartoDB.Positron') %>%
@@ -74,9 +74,6 @@ leaflet(DataTotal) %>%
     label = ~paste0(round(Year,2), 'Year'), color = ~ temp.pal(Year),
     opacity=1, fillOpacity=1
     ) 
-#adding legend & title
-  #addLegend('bottomleft', pal=temp.pal, values=DataTotal$Year,
-    #title='Site Location in CA', opacity=1)
 ```
 
 # 4a. Check for Missing or Improbable Data
@@ -102,7 +99,50 @@ There were 283 instances of negative PM2.5 concentration values, which have now 
 
 
 # 5. Explore the Main Question of Interest at State, County & City Level
+
+Main question of interest: Have daily concentrations of PM2.5 decreased over the last 15 years?
+
+# 5a. At the state level!
 ```{r}
+ggplot(DataTotal, mapping=aes(x=1, y= PM2_5)) +
+    geom_boxplot(aes(color= Year)) +
+    facet_grid(~Year) +
+    theme(legend.position = "none")
+```
+The mean PM2.5 Concentration in 2004 has higher than that of 2019, which means that concentration levels have in fact decreased when considering the entire state of California. 2019 does have a smaller range of concentrations, while 2004 had a few extreme outliers.
+
+# 5b. At the county level: comparing all counties
+```{r}
+DataCounty = DataTotal[,.(
+  PM2_5 = mean(PM2_5, na.rm = TRUE)
+), by = c("COUNTY","Year")]
+
+ggplot(DataCounty, aes(x=COUNTY, y=PM2_5)) +
+  geom_point(aes(color= Year)) +
+  theme(axis.text.x = element_text(angle = 90))
+
 
 ```
+For most counties, we see that the average Yearly PM2.5 Concentration was higher in 2004 than 2019. Therefore, it can be said that the average yearly PM2.5 concentration decreased in most counties from 2004 to 2019. Counties where this was not the case were Del Norte, Mono, Siskiyou, and Trinity. This graph also shows that there was no 2004 data for the counties of Glenn, Madera, Napa, and Tehama.
 
+# 5c. Within Los Angeles
+```{r}
+# isolated all LA County data so i could find a site
+DataLA = DataTotal[COUNTY == "Los Angeles"]
+unique(DataLA$city)
+DataPasadena= DataLA[city == "Pasadena"]
+unique(DataPasadena$`Site ID`)
+# only one site in Pasadena, so I'll look at that one
+
+ggplot(DataPasadena, aes(x=1, y=PM2_5)) +
+  geom_jitter(aes(color= Year)) + 
+  facet_grid(~Year) +
+  theme(legend.position = "none") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+mean(DataPasadena[Year == 2004]$PM2_5)
+mean(DataPasadena[Year == 2019]$PM2_5)
+```
+The average PM2.5 concentration almost halved in Pasadena between from 2004 to 2019. This can be seen visually in the plotting of all observations in Pasadena during these two years. 
