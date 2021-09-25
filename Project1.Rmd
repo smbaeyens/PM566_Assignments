@@ -42,7 +42,7 @@ head(Data2019)
 tail(Data2019)
 ```
 
-The 2004 data has 19233 rows & 20 columns. The 2019 data has 53086 rows & 20 columns. WRITE MORE HERE
+The 2004 data has 19233 rows & 20 columns. The 2019 data has 53086 rows & 20 columns. There is clearly much more data from 2019. Some variables of interest include the Date (character variable), the Site ID (integer variable), the daily Mean PM2.5 Concentration (numeric variable), the state and county (both character variables), and the site latitude and longitude (both numeric variables.) 
 
 # 2. Combine the two data sets & variable name clean-up
 ```{r}
@@ -74,7 +74,11 @@ leaflet(DataTotal) %>%
     label = ~paste0(round(Year,2), 'Year'), color = ~ temp.pal(Year),
     opacity=1, fillOpacity=1
     ) 
+
+unique(Data2004$`Site ID`)
+unique(Data2019$`Site ID`)
 ```
+Most sites are along the coast of California and clustered around big cities. There are a few stations located in Central and Northern CA. It is clear that there were more stations in 2019 than in 2004 which is verified by checking to see the unique amount of stations in both years.
 
 # 4a. Check for Missing or Improbable Data
 ```{r}
