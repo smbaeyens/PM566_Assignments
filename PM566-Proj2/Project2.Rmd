@@ -1,0 +1,229 @@
+---
+title: "Assignment2"
+author: "Sylvia Baeyens"
+date: "10/7/2021"
+output: github_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r packages, echo= FALSE, include= FALSE}
+#including necessary libraries
+library(data.table)
+library(dplyr)
+library(tidyverse)
+library(leaflet)
+library(R.utils)
+library(ggplot2)
+```
+
+## Loading Data Files & Merging
+```{r cache= TRUE}
+# Reading individual data set
+individual <- data.table::fread("chs_individual.csv")
+
+# Reading the regional data
+regional <- data.table::fread("chs_regional.csv")
+
+# Merging by location
+MData <- merge(
+  x = individual,
+  y = regional,
+  all.x = TRUE, all.y = FALSE
+)
+#the only common column was that of townname, don't need to specify a by.x/by.y
+```
+
+# Data Wrangling
+
+## 1. Data Cleanup
+
+After merging the data, make sure you don’t have any duplicates by counting the number of rows. Make sure it matches. In the case of missing values, impute data using the average within the variables “male” and “hispanic.” If you are interested (and feel adventurous) in the theme of Data Imputation, take a look at this paper on “Multiple Imputation” using the Amelia R package here.
+
+```{r}
+dim(individual)
+dim(MData)
+# both have 1200 rows, so there are no duplicates
+
+summary(is.na(MData))
+#there is missing data for agepft, height, weight, bmi, asthma, father_asmtha, mother_asthma, wheeze, hayfever, allergy, educ_parent, smoke, gasstove,fev, fvc, mmef, no_24hr, and pm 2_5_fr 
+
+# imputing for bmi, smoke, gasstove & fev based on gender & race as these are the variables we will be inspecting later
+
+MData[, bmi := fcoalesce(bmi, mean(bmi, na.rm = TRUE)),
+    by = .(male, hispanic)]
+MData[, fev := fcoalesce(fev, mean(fev, na.rm = TRUE)),
+    by = .(male, hispanic)]
+
+# could not impute for gasstove & smoke because they are binary
+```
+
+
+## 2. New Obesity Level variable
+
+Create a new categorical variable named “obesity_level” using the BMI measurement (underweight BMI<14; normal BMI 14-22; overweight BMI 22-24; obese BMI>24). To make sure the variable is rightly coded, create a summary table that contains the minimum BMI, maximum BMI, and the total number of observations per category.
+
+```{r}
+MData[bmi< 14,obesity_level:="underweight"]
+MData[bmi>= 14 & bmi< 22,obesity_level:="normal"]
+MData[bmi>= 22 & bmi< 24,obesity_level:="overweight"]
+MData[bmi>= 24,obesity_level:="obese"]
+
+MData[, .(
+    min_BMI = min(bmi, na.rm=TRUE),
+    max_BMI = max(bmi, na.rm=TRUE),
+    total_num = .N
+    ),
+    by = obesity_level
+    ] %>% head(n = 4)
+```
+
+
+## 3. New exposure variable
+
+Create another categorical variable named “smoke_gas_exposure” that summarizes “Second Hand Smoke” and “Gas Stove.” The variable should have four categories in total.
+
+```{r}
+MData[smoke == 0 & gasstove == 0,smoke_gas_exposure:="no exposure"]
+MData[smoke == 1 & gasstove == 0,smoke_gas_exposure:="smoke exposure"]
+MData[smoke == 0 & gasstove == 1,smoke_gas_exposure:="gas exposure"]
+MData[smoke == 1 & gasstove == 1,smoke_gas_exposure:="smoke & gas exposure"]
+
+MData[,.(
+  obs= .N),
+  by = smoke_gas_exposure
+]%>% head(n = 5)
+```
+
+
+## 4. Summary Tables
+
+Create four summary tables showing the average (or proportion, if binary) and sd of “Forced expiratory volume in 1 second (ml)” and asthma indicator by town, sex, obesity level, and “smoke_gas_exposure.”
+
+```{r}
+
+MData[, .(
+    average_FEV = mean(fev, na.rm=TRUE),
+    standarddev_FEV = sd(fev, na.rm=TRUE),
+    average_asthmaindic = mean(asthma, na.rm=TRUE),
+    standarddev_asthmaindic = sd(asthma, na.rm=TRUE)
+    ),
+    by = townname
+    ] %>% knitr::kable(caption = "Average FEV & Asthma Indicator by Town")
+
+MData[, .(
+    average_FEV = mean(fev, na.rm=TRUE),
+    standarddev_FEV = sd(fev, na.rm=TRUE),
+    average_asthmaindic = mean(asthma, na.rm=TRUE),
+    standarddev_asthmaindic = sd(asthma, na.rm=TRUE)
+    ),
+    by = male
+    ] %>% knitr::kable(caption = "Average FEV & Asthma Indicator by Sex")
+
+MData[, .(
+    average_FEV = mean(fev, na.rm=TRUE),
+    standarddev_FEV = sd(fev, na.rm=TRUE),
+    average_asthmaindic = mean(asthma, na.rm=TRUE),
+    standarddev_asthmaindic = sd(asthma, na.rm=TRUE)
+    ),
+    by = obesity_level
+    ] %>% knitr::kable(caption = "Average FEV & Asthma Indicator by Obesity Level")
+
+MData[, .(
+    average_FEV = mean(fev, na.rm=TRUE),
+    standarddev_FEV = sd(fev, na.rm=TRUE),
+    average_asthmaindic = mean(asthma, na.rm=TRUE),
+    standarddev_asthmaindic = sd(asthma, na.rm=TRUE)
+    ),
+    by = smoke_gas_exposure
+    ] %>% knitr::kable(caption = "Average FEV & Asthma Indicator by Smoke & Gas Exposure")
+```
+
+# Looking at the Data- EDA 
+
+The three questions of interest are:
+  1. What is the association between BMI and FEV (forced expiratory volume)?
+  2. What is the association between smoke and gas exposure and FEV?
+  3. What is the association between PM2.5 exposure and FEV?
+
+## EDA Checklist
+
+Checking Dimensions & headers/footers
+```{r}
+dim(MData)
+head(MData)
+tail(MData)
+```
+
+Checking Variable Types & Taking Closer Look at Key Variables
+```{r}
+str(MData)
+
+summary(MData$bmi)
+summary(MData$fev)
+summary(MData$pm25_mass)
+```
+
+Summary Statistics
+```{r}
+MData[, .(
+    min_fev = min(fev, na.rm=TRUE),
+    max_fev = max(fev, na.rm=TRUE),
+    avg_fev = mean(fev, na.rm=TRUE),
+    total_num = .N
+    ),
+    by = obesity_level
+    ] %>% knitr::kable(caption = "FEV Summary Stats by Obesity Level")
+
+MData[, .(
+    min_fev = min(fev, na.rm=TRUE),
+    max_fev = max(fev, na.rm=TRUE),
+    avg_fev = mean(fev, na.rm=TRUE),
+    total_num = .N
+    ),
+    by = smoke_gas_exposure
+    ] %>% knitr::kable(caption = "FEV Summary Stats by Smoke & Gas Exposure")
+```
+
+
+# Data Visualization
+
+## 1. Scatter plot comparing BMI vs FEV by townname
+```{r}
+ggplot(MData, aes(x=bmi, y=fev)) +
+  geom_point() +
+  facet_grid(~townname)
+
+#add regression lines & make subplot esque organization
+```
+
+## 2. Stacked histograms of FEV by BMI category and FEV by smoke/gas exposure.
+```{r}
+# change default theme
+```
+
+## 3. Barchart of BMI by smoke/gas exposure.
+```{r}
+
+```
+
+## 4. Statistical summary graphs of FEV by BMI and FEV by smoke/gas exposure category
+```{r}
+
+```
+
+## 5. A leaflet map showing the concentrations of PM2.5 mass in each of the CHS communities.
+```{r}
+#make sure leaflet graph doesn't print in knit github document- check lecture and github notes
+```
+
+## 6. Choose a visualization to examine whether PM2.5 mass is associated with FEV.
+```{r}
+ggplot(MData, aes(x=fev, y=pm25_mass)) +
+  geom_point() 
+```
+
