@@ -517,9 +517,10 @@ ggplot(MData, aes(x=bmi, y=fev)) +
 
 ![](Project2_files/figure-gfm/unnamed-chunk-9-1.png)<!-- --> It does
 appear from the above graphs that there is a positive relationship
-between increasing bmi and increasing FEV. For all towns, the slope of
-the best fit line is greater than 0. This trend seems most apparent in
-the towns of Upland, Lake Elsinore, and Atascadero, as shown by the
+between increasing bmi and increasing FEV. As an individuals bmi
+increases, so, too, does their lung capacity. For all towns, the slope
+of the best fit line is greater than 0. This trend seems most apparent
+in the towns of Upland, Lake Elsinore, and Atascadero, as shown by the
 slopes of these best fit lines.
 
 ## 2. Stacked histograms of FEV by BMI category and FEV by smoke/gas exposure.
@@ -598,11 +599,16 @@ and obese groups have the greatest maximum fev values, while the normal
 and underweight groups have the smallest mimimum values. It can be seen
 that there is some correlation between fev and obesity level, and that
 there is a greater likelihood to have a large fev value at a high bmi.
+This could be because a high bmi leads to a larger frame and therefore
+higher lung capacity. An underweight individual likely has less room
+within their body for their lungs to expand, and therefore, has less
+lung capacity compariatively. This trend was shown in the earlier graph
+visualizing bmi and fev by town.
 
 ## 5. A leaflet map showing the concentrations of PM2.5 mass in each of the CHS communities.
 
 ``` r
-temp.pal = colorNumeric(c('darkblue','navyblue','lightblue'), domain = MData$pm25_mass)
+temp.pal = colorNumeric(c('darkgreen','yellow','red'), domain = MData$pm25_mass)
 
 leaflet(MData) %>%
   addProviderTiles('CartoDB.Positron') %>%
@@ -613,19 +619,36 @@ leaflet(MData) %>%
     )  %>%
   addLegend('bottomleft', pal=temp.pal, values=MData$pm25_mass,
           title='PM2.5 Mass', opacity=1)
-#make sure leaflet graph doesn't print in knit github document- check lecture and github notes
+#the leaflet graph won't print in knit github document
 ```
 
 The mass of PM2.5 Particles is greatest in the town of Mira Loma, east
 of LA. The other towns near the Riverside/San Bernardino areas also have
-large PM 2.5 Mass. As you move further away, the mass of the averag
-PM2.5 particles decreases.
+large PM 2.5 Mass. As you move further away from the LA metropolitan
+area, the mass of the averag PM2.5 particles decreases. The smallest
+average particle mass is found in San Luis Obispo. This is likely due to
+the urban and industrial nature of the LA metropolitan area and its
+surroundings, whereas SLO has less manufacturing and heavy industrial
+plants, leading to less large air pollutants.
 
 ## 6. Choose a visualization to examine whether PM2.5 mass is associated with FEV.
 
 ``` r
-ggplot(MData, aes(x=fev, y=pm25_mass)) +
-  geom_point() 
+ggplot(MData, aes(x=pm25_mass, y=fev)) +
+  geom_point(aes(color=  townname)) +
+  geom_smooth(method= "lm") +
+  ggtitle("Visualizing the Association between FEV & PM2.5 Particle Mass")
 ```
 
-![](Project2_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+    ## `geom_smooth()` using formula 'y ~ x'
+
+![](Project2_files/figure-gfm/unnamed-chunk-14-1.png)<!-- --> This final
+graph visualizes fev by pm 2.5 particle mass. Each town receives a
+unique color, which goes in hand with the above leaflet graph,
+confirming that Mira Loma, Upland, and Riverside observed the largest PM
+2.5 Particles, while Lompoc and Santa Maria had the smallest Pm 2.5
+Particles. There is a slight negative relationshop between the two
+variables. As the mass of the PM 2.5 particles increases, the average
+fev decreases. This could imply that breathing in the larger air
+pollutant particles could have a negative effect on lung function;
+however, this effect is very small and almost negligible.
