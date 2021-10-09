@@ -197,30 +197,66 @@ MData[, .(
 ggplot(MData, aes(x=bmi, y=fev)) +
   geom_point() +
   facet_wrap(~townname) +
-  geom_smooth(method ="lm")
+  geom_smooth(method ="lm") +
+  ggtitle("BMI vs FEV in different CA towns")
 
 ```
 It does appear from the above graphs that there is a positive relationship between increasing bmi and increasing FEV. For all towns, the slope of the best fit line is greater than 0. This trend seems most apparent in the towns of Upland, Lake Elsinore, and Atascadero, as shown by the slopes of these best fit lines.
 
 ## 2. Stacked histograms of FEV by BMI category and FEV by smoke/gas exposure.
 ```{r}
-# change default theme
+ggplot(MData, aes(x=fev)) +
+  geom_histogram(aes(fill=obesity_level))+
+  scale_fill_brewer(palette = "Pastel1") +
+  ggtitle("Visualizing FEV distribution by Obesity Levels")
+
+ggplot(MData, aes(x=fev)) +
+  geom_histogram(aes(fill=smoke_gas_exposure))+
+  scale_fill_brewer(palette = "Pastel2") +
+  ggtitle("Visualizing FEV distribution by Smoke and Gas Exposure Levels")
 ```
+When looking at obesity level, the distribution of fev is normal for the normal weight group. However, for the obese & overweight groups, the data is skewed to the right whereas for the underweight group, the data is skewed to the left. When viewing this graph, we can assume that the average fev for the obese and overweight groups is greater than that of the normal group, and that the average fev for the underweight group is less than that of the normal group. 
+
+We do not see a similar trend in the histogram showing fev by smoke & gas exposure level. For all of these groups, the fev distribution is normal, and one can assume that the average fev for all 4 groups is the same. 
 
 ## 3. Barchart of BMI by smoke/gas exposure.
 ```{r}
-
+ggplot(MData) +
+  geom_bar(mapping =aes(x=obesity_level, fill=smoke_gas_exposure)) +
+  ggtitle("Visualizing Gas & Smoke Exposure Level counts by Obesity Levels")
 ```
+Gas exposure is the most common form of exposure experienced by all 4 obesity level groups. The normal group seems to have the highest percentage of individuals experiencing no exposure. Besides that, the proportions of exposure levels appear to be the same among the different groups, showing that there might not be that large of a relationship between the type of exposure experienced and obesity level.
 
 ## 4. Statistical summary graphs of FEV by BMI and FEV by smoke/gas exposure category
 ```{r}
+ggplot(MData, aes(x= obesity_level, y= fev)) +
+  stat_summary(fun.min = min, fun.max= max, fun = median) +
+  ggtitle("Visualizing Range & Median of FEV by Obesity Levels")
 
+ggplot(MData, aes(x= smoke_gas_exposure, y= fev)) +
+  stat_summary(fun.min = min, fun.max= max, fun = median) +
+  ggtitle("Visualizing Range & Median of FEV by Obesity Levels")
 ```
+The average fev is greatest for the obese and overweight groups at about 2250, and lowest for the underweight group at 1700. The normal group has the largest range of fev values and an average fev of 2000. The normal and obese groups have the greatest maximum fev values, while the normal and underweight groups have the smallest mimimum values. It can be seen that there is some correlation between fev and obesity level, and that there is a greater likelihood to have a large fev value at a high bmi.
+
 
 ## 5. A leaflet map showing the concentrations of PM2.5 mass in each of the CHS communities.
-```{r}
+```{r eval = knitr::is_html_output(excludes = "gfm")}
+
+temp.pal = colorNumeric(c('darkblue','navyblue','lightblue'), domain = MData$pm25_mass)
+
+leaflet(MData) %>%
+  addProviderTiles('CartoDB.Positron') %>%
+  addCircles(
+    lat = ~lat, lng=~lon, 
+    color = ~ temp.pal(pm25_mass),
+    opacity=1, fillOpacity=1
+    )  %>%
+  addLegend('bottomleft', pal=temp.pal, values=MData$pm25_mass,
+          title='PM2.5 Mass', opacity=1)
 #make sure leaflet graph doesn't print in knit github document- check lecture and github notes
 ```
+The mass of PM2.5 Particles is greatest in the town of Mira Loma, east of LA. The other towns near the Riverside/San Bernardino areas also have large PM 2.5 Mass. As you move further away, the mass of the averag PM2.5 particles decreases.
 
 ## 6. Choose a visualization to examine whether PM2.5 mass is associated with FEV.
 ```{r}
