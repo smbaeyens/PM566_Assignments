@@ -196,10 +196,11 @@ MData[, .(
 ```{r}
 ggplot(MData, aes(x=bmi, y=fev)) +
   geom_point() +
-  facet_grid(~townname)
+  facet_wrap(~townname) +
+  geom_smooth(method ="lm")
 
-#add regression lines & make subplot esque organization
 ```
+It does appear from the above graphs that there is a positive relationship between increasing bmi and increasing FEV. For all towns, the slope of the best fit line is greater than 0. This trend seems most apparent in the towns of Upland, Lake Elsinore, and Atascadero, as shown by the slopes of these best fit lines.
 
 ## 2. Stacked histograms of FEV by BMI category and FEV by smoke/gas exposure.
 ```{r}
