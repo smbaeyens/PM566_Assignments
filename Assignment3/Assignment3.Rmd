@@ -3,9 +3,9 @@ title: "Assignment 3"
 author: "Sylvia Baeyens"
 date: "due 11/5/2021"
 output:
-  html_document: default
   github_document: 
     html_preview: false
+  html_document: default
   word_document: default
 always_allow_html: true
 ---
@@ -148,7 +148,7 @@ pubmedData %>%
   top_n(5,n)%>%
   knitr::kable(caption="5 Most Frequent Tokens Per Search Term")
 ```
-Here we see that the different search terms were covid, cystic fibrosis, meningitis, preeclampsia, and prostate cancer. 
+Here we see that the different search terms were covid, cystic fibrosis, meningitis, preeclampsia, and prostate cancer. This table details the 5 most frequent token for each search term. There is some overlap between search terms.
 
 ## Tokenize the abstracts into bigrams. Find the 10 most common bigram and visualize them with ggplot2.
 
@@ -168,3 +168,17 @@ pubmedData %>%
 This plot shows all the most frequent bigrams. They are all medically related.
 
 ## Calculate the TF-IDF value for each word-search term combination. (here you want the search term to be the “document”) What are the 5 tokens from each search term with the highest TF-IDF value? How are the results different from the answers you got in question 1?
+
+```{r TF-IDF}
+pubmedData %>%
+  unnest_tokens(word, abstract) %>%
+  count(word, term) %>%
+  bind_tf_idf(word, term, n) %>%
+  group_by(term)%>%
+  top_n(5,tf_idf)%>%
+  arrange(desc(tf_idf), .by_group = TRUE)%>%
+  knitr::kable(caption="5 Tokens with the highest TF-IDF values for each search term ")
+```
+
+The table above shows the 5 Token Words with the highest TF-IDF values for each of the 5 search terms. There is overlap between these words and the result of Q1, where we searched for most frequent words. However, this new list appears to contain words with greater specificity, such as androgen, pachymeningitis, and cftr and fewer general words such as patient or disease. This is because the TF-IDf takes into account the importance of the word to the paper, and words with greater specificity will have greater importance. 
+
