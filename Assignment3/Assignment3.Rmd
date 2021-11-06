@@ -22,4 +22,94 @@ library(tidytext)
 library(dplyr)
 library(ggplot2)
 library(data.table)
+library(httr)
 ```
+
+# APIs
+
+## 1. Using the NCBI API, look for papers that show up under the term “sars-cov-2 trial vaccine.” Look for the data in the pubmed database, and then retrieve the details of the paper as shown in lab 7. How many papers were you able to find?
+```{r NCBI API}
+
+website = xml2::read_html("https://pubmed.ncbi.nlm.nih.gov/?term=sars-cov-2+trial+vaccine")
+count = xml2::xml_find_first(website, "/html/body/main/div[9]/div[2]/div[2]/div[1]/div[1]/span")
+count = as.character(count)
+numCount = stringr::str_extract(count, "[0-9,]+")
+
+```
+There are 2339 papers.
+
+## 2. Using the list of pubmed ids you retrieved, download each papers’ details using the query parameter rettype = abstract. If you get more than 250 ids, just keep the first 250.
+```{r paper details}
+
+query_ids = GET(
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+  query = list(
+    db = "pubmed",
+    term = "sars-cov-2 trial vaccine",
+    retmax = 1000
+  )
+)
+ids = httr::content(query_ids)
+ids = as.character(ids)
+ids = stringr::str_extract_all(ids, "<Id>[[:digit:]]+</Id>")[[1]]
+ids = stringr::str_remove_all(ids, "<Id>|</Id>")
+ids = ids[1:250] #to keep only first 250
+ids2 = I(paste(ids, collapse = ","))
+
+pubs = GET(
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+  query = list(
+    db =  "pubmed",
+    id = ids2,
+    retmax = 1000,
+    rettype = "abstract"
+    )
+)
+
+pubs = httr::content(pubs)
+pubsText = as.character(pubs)
+```
+
+## 3. As we did in lab 7. Create a dataset containing the following: Pubmed ID number, Title of the paper,
+Name of the journal where it was published, Publication date, and Abstract of the paper (if any).
+
+```{r publication dataset}
+
+pub_char_list = xml2::xml_children(pubs)
+pub_char_list = sapply(pub_char_list, as.character)
+# Title of the Paper
+title = str_extract(pub_char_list, "<ArticleTitle>[[:print:][:space:]]+</ArticleTitle>")
+title = str_remove_all(title, "</?[[:alnum:]- =\"]+>")
+# Name of Journal where it was Published
+journal = str_extract(pub_char_list, "<Title>[[:print:][:space:]]+</Title>")
+journal = str_remove_all(journal, "</?[[:alnum:]- =\"]+>")
+journal = str_replace_all(journal, "[[:space:]]+", " ")
+# Publication Date
+PubDate = str_extract(pub_char_list, "<PubDate>[[:print:][:space:]]+</PubDate>")
+PubDate = str_remove_all(PubDate, "</?[[:alnum:]- =\"]+>")
+PubDate = str_replace_all(PubDate, "[[:space:]]+", " ")
+# Abstract of the paper (if any)
+abstracts = str_extract(pub_char_list, "<Abstract>[[:print:][:space:]]+</Abstract>")
+abstracts = str_remove_all(abstracts, "</?[[:alnum:]- =\"]+>")
+abstracts = str_replace_all(abstracts, "[[:space:]]+", " ")
+
+
+# Create a database
+database = data.frame(
+  Journal = journal,
+  PublicationDate = PubDate,
+  PubMedID = ids,
+  Title = title,
+  Abstract = abstracts
+)
+knitr::kable(database[1:20, ], caption = "Summary of Sars-2 Covid Vaccine Academic Papers")
+```
+
+
+# Text Mining
+
+## Tokenize the abstracts and count the number of each token. Do you see anything interesting? Does removing stop words change what tokens appear as the most frequent? What are the 5 most common tokens for each search term after removing stopwords?
+
+## Tokenize the abstracts into bigrams. Find the 10 most common bigram and visualize them with ggplot2.
+
+## Calculate the TF-IDF value for each word-search term combination. (here you want the search term to be the “document”) What are the 5 tokens from each search term with the highest TF-IDF value? How are the results different from the answers you got in question 1?
