@@ -102,14 +102,69 @@ database = data.frame(
   Title = title,
   Abstract = abstracts
 )
-knitr::kable(database[1:20, ], caption = "Summary of Sars-2 Covid Vaccine Academic Papers")
+knitr::kable(database[1:15, ], caption = "Summary of first Sars-2 Covid Vaccine Academic Papers")
 ```
-
 
 # Text Mining
 
+```{r add new datset}
+if (!file.exists("pubmed.csv")) {
+download.file("https://raw.githubusercontent.com/USCbiostats/data-science-data/master/03_pubmed/pubmed.csv",
+              destfile = "pubmed.csv", 
+              method="libcurl", 
+              timeout = 60
+              )
+}
+pubmedData = data.table::fread("pubmed.csv")
+```
+
 ## Tokenize the abstracts and count the number of each token. Do you see anything interesting? Does removing stop words change what tokens appear as the most frequent? What are the 5 most common tokens for each search term after removing stopwords?
 
+```{r tokenizing abstracts}
+pubmedData %>%
+  unnest_tokens(token, abstract) %>%
+  count(token, sort = TRUE) %>%
+  top_n(15, n)%>%
+  knitr::kable(caption = "15 Most Frequent Token Words without removing Stop Words")
+```
+The 10 most frequent tokens are all stop words, with the exception of covid and 19, as is to be expected. As we go further down the list to 11-15, we see more medically relevant words such as patient and cancer.
+
+```{r tokens without stop words}
+pubmedData %>%
+  unnest_tokens(token, abstract) %>%
+  anti_join(stop_words, by = c("token" = "word")) %>%
+  count(token, sort = TRUE) %>%
+  top_n(15, n)%>%
+  knitr::kable(caption = "15 Most Frequent Token Words with Stop Words Removed")
+```
+Now all the token words have medical relevance. The 5 most common are covid, 19, patients, cancer, and prostate.
+
+```{r by each search term}
+pubmedData %>% 
+  unnest_tokens(token, abstract)%>%
+  anti_join(stop_words,by = c("token" = "word"))%>%
+  group_by(term)%>%
+  count(token)%>%
+  top_n(5,n)%>%
+  knitr::kable(caption="5 Most Frequent Tokens Per Search Term")
+```
+Here we see that the different search terms were covid, cystic fibrosis, meningitis, preeclampsia, and prostate cancer. 
+
 ## Tokenize the abstracts into bigrams. Find the 10 most common bigram and visualize them with ggplot2.
+
+```{r bigrams}
+pubmedData %>%
+  unnest_ngrams(output = bigram, input = abstract, n = 2) %>%
+  separate(bigram, into = c("word1", "word2"), sep = " ") %>%
+  anti_join(stop_words, by = c("word1" = "word")) %>%
+  anti_join(stop_words, by = c("word2" = "word")) %>%
+  unite(bigram, c("word1", "word2"), sep = " ") %>%
+  count(bigram, sort = TRUE) %>%
+  top_n(10)%>%
+  ggplot(aes(x = n, y = fct_reorder(bigram, n))) +
+  geom_col(fill= "royal blue") +
+  labs(title = "10 Most Frequent Bigrams with Stop Words Removed")
+```
+This plot shows all the most frequent bigrams. They are all medically related.
 
 ## Calculate the TF-IDF value for each word-search term combination. (here you want the search term to be the “document”) What are the 5 tokens from each search term with the highest TF-IDF value? How are the results different from the answers you got in question 1?
