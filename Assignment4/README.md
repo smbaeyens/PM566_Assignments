@@ -40,7 +40,7 @@ fun2 <- function(mat) {
 }
 
 fun2alt <- function(mat) {
- ans= cumsum(mat)
+ ans= t(apply(mat, 1, cumsum))
  ans
 }
 
@@ -61,17 +61,25 @@ microbenchmark::microbenchmark(
     ## overflows
 
     ## Unit: relative
-    ##          expr      min       lq     mean   median       uq       max neval
-    ##     fun1(dat) 30.29752 29.27519 12.73278 28.55351 27.77113 0.2775681   100
-    ##  fun1alt(dat)  1.00000  1.00000  1.00000  1.00000  1.00000 1.0000000   100
+    ##          expr   min       lq     mean   median       uq       max neval
+    ##     fun1(dat) 30.72 29.57249 10.51067 27.88621 26.63175 0.3374159   100
+    ##  fun1alt(dat)  1.00  1.00000  1.00000  1.00000  1.00000 1.0000000   100
 
 ``` r
 # Test for the second
-#microbenchmark::microbenchmark(
-#  fun2(dat),
-#  fun2alt(dat), unit = "relative", check = "equivalent"
-#)
+microbenchmark::microbenchmark(
+  fun2(dat),
+  fun2alt(dat), unit = "relative", check = "equivalent"
+)
 ```
+
+    ## Unit: relative
+    ##          expr      min       lq     mean   median       uq       max neval
+    ##     fun2(dat) 4.010666 3.546442 2.389378 3.476236 3.353129 0.4643742   100
+    ##  fun2alt(dat) 1.000000 1.000000 1.000000 1.000000 1.000000 1.0000000   100
+
+In both cases, our alternative code, which contaisn no for loops, runs
+much faster.
 
 ## Problem 2: Make things run faster with parallel computing
 
@@ -105,20 +113,31 @@ system.time({
     ## [1] 3.14124
 
     ##    user  system elapsed 
-    ##   0.822   0.178   1.020
+    ##   0.833   0.177   1.028
 
 Rewrite the previous code using parLapply() to make it run faster. Make
 sure you set the seed using clusterSetRNGStream():
 
 ``` r
-# YOUR CODE HERE
-# system.time({
-#   # YOUR CODE HERE
-#   ans <- # YOUR CODE HERE
-#   print(mean(ans))
-#   # YOUR CODE HERE
-#})
+library(parallel)
+
+system.time({
+  cl <- makePSOCKcluster(1L)
+  clusterSetRNGStream(cl, 1231)
+  clusterExport(cl, c("sim_pi"), envir = environment())
+  ans = unlist(parLapply(cl = cl, 1:4000, sim_pi, n = 10000))
+  print(mean(ans))
+  stopCluster(cl)
+  ans
+})
 ```
+
+    ## [1] 3.141342
+
+    ##    user  system elapsed 
+    ##   0.002   0.002   1.244
+
+Parallizing the code makes it run much faster.
 
 # SQL
 
@@ -229,8 +248,6 @@ Displaying records 1 - 10
 
 ## Question 4
 
-FIX!!
-
 Incorporate table category into the answer to the previous question to
 find the name of the most popular category.
 
@@ -254,6 +271,8 @@ SELECT *
 1 records
 
 </div>
+
+The most popular movie category is the sports category.
 
 ## Clean up
 

@@ -60,7 +60,7 @@ fun2 <- function(mat) {
 }
 
 fun2alt <- function(mat) {
- ans= cumsum(mat)
+ ans= t(apply(mat, 1, cumsum))
  ans
 }
 
@@ -76,12 +76,14 @@ microbenchmark::microbenchmark(
 )
 
 # Test for the second
-#microbenchmark::microbenchmark(
-#  fun2(dat),
-#  fun2alt(dat), unit = "relative", check = "equivalent"
-#)
+microbenchmark::microbenchmark(
+  fun2(dat),
+  fun2alt(dat), unit = "relative", check = "equivalent"
+)
 
 ```
+In both cases, our alternative code, which contaisn no for loops, runs much faster.
+
 
 ## Problem 2: Make things run faster with parallel computing
 
@@ -111,14 +113,21 @@ system.time({
 Rewrite the previous code using parLapply() to make it run faster. Make sure you set the seed using clusterSetRNGStream():
 
 ```{r 2c}
-# YOUR CODE HERE
-# system.time({
-#   # YOUR CODE HERE
-#   ans <- # YOUR CODE HERE
-#   print(mean(ans))
-#   # YOUR CODE HERE
-#})
+
+library(parallel)
+
+system.time({
+  cl <- makePSOCKcluster(1L)
+  clusterSetRNGStream(cl, 1231)
+  clusterExport(cl, c("sim_pi"), envir = environment())
+  ans = unlist(parLapply(cl = cl, 1:4000, sim_pi, n = 10000))
+  print(mean(ans))
+  stopCluster(cl)
+  ans
+})
 ```
+Parallizing the code makes it run much faster.
+
 
 # SQL
 
@@ -180,8 +189,6 @@ GROUP BY category_id
 
 ## Question 4 
 
-FIX!!
-
 Incorporate table category into the answer to the previous question to find the name of the most popular category.
 ```{sql connection=con}
 
@@ -195,6 +202,7 @@ SELECT *
   LIMIT 1
 
 ```
+The most popular movie category is the sports category. 
 
 ## Clean up
 ```{r}
