@@ -183,11 +183,14 @@ FIX!!
 Incorporate table category into the answer to the previous question to find the name of the most popular category.
 ```{sql connection=con}
 
-SELECT name
-FROM category
-  INNER JOIN film_category
-  ON category.category_id = film_category.category_id;
-WHERE category.category_id = "15"
+SELECT *
+  FROM category as a
+  INNER JOIN 
+    (SELECT category_id, COUNT (*) as Number_Films
+      FROM film_category GROUP BY category_id) as b
+  ON a.category_id = b.category_id
+  ORDER BY Number_Films DESC
+  LIMIT 1
 
 ```
 
