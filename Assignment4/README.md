@@ -1,36 +1,16 @@
----
-title: "Assignment 4- HPC & SQL"
-author: "Sylvia Baeyens"
-date: "due 11/19/2021"
-output:
-  github_document: 
-    html_preview: false
-  html_document: default
-  word_document: default
-always_allow_html: true
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-```{r packages, echo= FALSE, include= FALSE}
-#including necessary libraries
-library(tidyverse)
-library(tidytext)
-library(dplyr)
-library(ggplot2)
-library(data.table)
-library(httr)
-```
+Assignment 4- HPC & SQL
+================
+Sylvia Baeyens
+due 11/19/2021
 
 # HPC
+
 ## Problem 1: Make sure your code is nice
 
-Rewrite the following R functions to make them faster. It is OK (and recommended) to take a look at Stackoverflow and Google
-```{r rewriting functions}
+Rewrite the following R functions to make them faster. It is OK (and
+recommended) to take a look at Stackoverflow and Google
 
+``` r
 # Total row sums
 fun1 <- function(mat) {
   n <- nrow(mat)
@@ -74,19 +54,30 @@ microbenchmark::microbenchmark(
   fun1(dat),
   fun1alt(dat), unit = "relative", check = "equivalent"
 )
+```
 
+    ## Warning in microbenchmark::microbenchmark(fun1(dat), fun1alt(dat), unit
+    ## = "relative", : less accurate nanosecond times to avoid potential integer
+    ## overflows
+
+    ## Unit: relative
+    ##          expr      min       lq     mean   median       uq       max neval
+    ##     fun1(dat) 30.29752 29.27519 12.73278 28.55351 27.77113 0.2775681   100
+    ##  fun1alt(dat)  1.00000  1.00000  1.00000  1.00000  1.00000 1.0000000   100
+
+``` r
 # Test for the second
 #microbenchmark::microbenchmark(
 #  fun2(dat),
 #  fun2alt(dat), unit = "relative", check = "equivalent"
 #)
-
 ```
 
 ## Problem 2: Make things run faster with parallel computing
 
 The following function allows simulating PI
-```{r 2a}
+
+``` r
 sim_pi <- function(n = 1000, i = NULL) {
   p <- matrix(runif(n*2), ncol = 2)
   mean(rowSums(p^2) < 1) * 4
@@ -97,9 +88,12 @@ set.seed(156)
 sim_pi(1000) # 3.132
 ```
 
-In order to get accurate estimates, we can run this function multiple times, with the following code:
+    ## [1] 3.132
 
-```{r 2b}
+In order to get accurate estimates, we can run this function multiple
+times, with the following code:
+
+``` r
 # This runs the simulation a 4,000 times, each with 10,000 points
 set.seed(1231)
 system.time({
@@ -108,9 +102,15 @@ system.time({
 })
 ```
 
-Rewrite the previous code using parLapply() to make it run faster. Make sure you set the seed using clusterSetRNGStream():
+    ## [1] 3.14124
 
-```{r 2c}
+    ##    user  system elapsed 
+    ##   0.822   0.178   1.020
+
+Rewrite the previous code using parLapply() to make it run faster. Make
+sure you set the seed using clusterSetRNGStream():
+
+``` r
 # YOUR CODE HERE
 # system.time({
 #   # YOUR CODE HERE
@@ -123,7 +123,8 @@ Rewrite the previous code using parLapply() to make it run faster. Make sure you
 # SQL
 
 Setup a temporary database by running the following chunk
-```{r}
+
+``` r
 # install.packages(c("RSQLite", "DBI"))
 
 library(RSQLite)
@@ -144,47 +145,96 @@ dbWriteTable(con, "category", category)
 ```
 
 ## Question 1
-How many many movies is there avaliable in each rating catagory.
-```{sql connection=con}
 
+How many many movies is there avaliable in each rating catagory.
+
+``` sql
 SELECT rating,
   COUNT (*) as Number_Movies
 FROM film
 GROUP BY rating
-
 ```
 
+<div class="knitsql-table">
+
+| rating | Number\_Movies |
+|:-------|---------------:|
+| G      |            180 |
+| NC-17  |            210 |
+| PG     |            194 |
+| PG-13  |            223 |
+| R      |            195 |
+
+5 records
+
+</div>
 
 ## Question 2
-What is the average replacement cost and rental rate for each rating category.
-```{sql connection=con}
 
+What is the average replacement cost and rental rate for each rating
+category.
+
+``` sql
 SELECT rating,
   AVG(replacement_cost) as AvgReplacementCost, 
   AVG(rental_rate) as AvgRentalRate
 FROM film
 GROUP BY rating
-
 ```
 
-## Question 3
-Use table film_category together with film to find the how many films there are with each category ID
-```{sql connection=con}
+<div class="knitsql-table">
 
+| rating | AvgReplacementCost | AvgRentalRate |
+|:-------|-------------------:|--------------:|
+| G      |           20.12333 |      2.912222 |
+| NC-17  |           20.13762 |      2.970952 |
+| PG     |           18.95907 |      3.051856 |
+| PG-13  |           20.40256 |      3.034843 |
+| R      |           20.23103 |      2.938718 |
+
+5 records
+
+</div>
+
+## Question 3
+
+Use table film\_category together with film to find the how many films
+there are with each category ID
+
+``` sql
 SELECT category_id,
   COUNT (*) as Number_Films
 FROM film_category
 GROUP BY category_id
-
 ```
 
-## Question 4 
+<div class="knitsql-table">
+
+| category\_id | Number\_Films |
+|:-------------|--------------:|
+| 1            |            64 |
+| 2            |            66 |
+| 3            |            60 |
+| 4            |            57 |
+| 5            |            58 |
+| 6            |            68 |
+| 7            |            62 |
+| 8            |            69 |
+| 9            |            73 |
+| 10           |            61 |
+
+Displaying records 1 - 10
+
+</div>
+
+## Question 4
 
 FIX!!
 
-Incorporate table category into the answer to the previous question to find the name of the most popular category.
-```{sql connection=con}
+Incorporate table category into the answer to the previous question to
+find the name of the most popular category.
 
+``` sql
 SELECT *
   FROM category as a
   INNER JOIN 
@@ -193,11 +243,21 @@ SELECT *
   ON a.category_id = b.category_id
   ORDER BY Number_Films DESC
   LIMIT 1
-
 ```
 
+<div class="knitsql-table">
+
+| category\_id | name   | last\_update        | category\_id | Number\_Films |
+|-------------:|:-------|:--------------------|-------------:|--------------:|
+|           15 | Sports | 2006-02-15 09:46:27 |           15 |            74 |
+
+1 records
+
+</div>
+
 ## Clean up
-```{r}
+
+``` r
 # clean up
 dbDisconnect(con)
 ```
